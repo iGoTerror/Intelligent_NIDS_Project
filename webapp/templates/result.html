@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOC Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+
+<body>
+    <main class="container">
+        <header class="gsap-element">
+            <h1 class="title">Security Operations Center Dashboard</h1>
+            <div class="timeline">
+                <span class="active">Upload</span> <i>→</i>
+                <span class="active">Validate</span> <i>→</i>
+                <span class="active">Preprocess</span> <i>→</i>
+                <span class="active">SVM Inference</span> <i>→</i>
+                <span class="active">Report Gen</span> <i>→</i>
+                <span class="active">✓ Complete</span>
+            </div>
+        </header>
+
+        <section class="card gsap-element" style="margin-bottom: 30px; text-align: left;">
+            <h2>Dataset Intelligence</h2>
+            <div class="dataset-info-grid">
+                <div class="dataset-info-item"><span>Filename</span><strong>{{ dataset_info.filename }}</strong></div>
+                <div class="dataset-info-item"><span>Rows / Features</span><strong>{{ dataset_info.rows }} / {{
+                        dataset_info.columns }}</strong></div>
+                <div class="dataset-info-item"><span>Missing Values</span><strong>{{ dataset_info.missing_values
+                        }}</strong></div>
+                <div class="dataset-info-item"><span>Memory Used</span><strong>{{ dataset_info.memory_usage_mb }}
+                        MB</strong></div>
+                <div class="dataset-info-item"><span>Processing Time</span><strong>{{ dataset_info.processing_time }}
+                        s</strong></div>
+                <div class="dataset-info-item"><span>Inference Time</span><strong>{{ dataset_info.inference_time }}
+                        s</strong></div>
+            </div>
+        </section>
+
+        <div class="stats-bar gsap-element">
+            <div><span>Model Engine</span><strong>{{ model_metrics.model_name if model_metrics else 'Optimized Ensemble' }}</strong></div>
+            <div><span>Accuracy</span><strong>{{ model_metrics.accuracy if model_metrics else '89.16' }}%</strong></div>
+            <div><span>Precision</span><strong>{{ model_metrics.precision if model_metrics else '91.68' }}%</strong></div>
+            <div><span>Recall</span><strong>{{ model_metrics.recall if model_metrics else '89.04' }}%</strong></div>
+            <div><span>F1 Score</span><strong>{{ model_metrics.f1_score if model_metrics else '90.34' }}%</strong></div>
+        </div>
+
+        <section class="cards gsap-element">
+            <div class="card">
+                <h2>Total Packets</h2>
+                <p class="counter text-blue" data-target="{{ total }}">0</p>
+            </div>
+            <div class="card">
+                <h2>Attack Packets</h2>
+                <p class="counter text-red" data-target="{{ attack }}">0</p>
+            </div>
+            <div class="card">
+                <h2>Normal Packets</h2>
+                <p class="counter text-green" data-target="{{ normal }}">0</p>
+            </div>
+            <div class="card threat-card" data-threat-color="{{ threat_color }}">
+                <h2>Threat Level</h2>
+                <div class="threat-badge">
+                    {{ threat_level }}
+                </div>
+                <p class="counter text-orange threat-counter" data-target="{{ attack_percentage }}"
+                    data-suffix="%">0%</p>
+            </div>
+        </section>
+
+        <section class="charts-grid gsap-element">
+            <div class="chart-card">
+                <h2>Traffic Distribution (Threat)</h2>
+                <canvas id="doughnutChart" data-normal="{{ normal }}" data-attack="{{ attack }}"></canvas>
+                <div class="doughnut-center">
+                    <h3 id="doughnutPercent">{{ attack_percentage }}%</h3>
+                    <span>Threat</span>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2>Attacks by Protocol</h2>
+                <canvas id="protocolChart" data-protocols="{{ protocols }}" data-pattack="{{ protocol_attack }}"
+                    data-pnormal="{{ protocol_normal }}"></canvas>
+            </div>
+        </section>
+
+        <section class="charts-grid gsap-element" style="grid-template-columns: 1fr;">
+            <div class="chart-card">
+                <h2>Top 10 Services (Distribution)</h2>
+                <canvas id="serviceChart" data-services="{{ services }}" data-sattack="{{ service_attack }}"
+                    data-snormal="{{ service_normal }}" height="80"></canvas>
+            </div>
+        </section>
+
+        <section class="table-container gsap-element">
+            <div class="table-header">
+                <h2>Live Prediction Inspector (First 500)</h2>
+                <div class="table-controls">
+                    <input type="text" id="searchInput" placeholder="Search (e.g. http, tcp)">
+                    <select id="filterSelect">
+                        <option value="All">All Traffic</option>
+                        <option value="Attack">Attack Only</option>
+                        <option value="Normal">Normal Only</option>
+                    </select>
+                </div>
+            </div>
+            <table id="predictionTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>{{ table_headers[0] if table_headers else 'Protocol' }}</th>
+                        <th>{{ table_headers[1] if table_headers else 'Service' }}</th>
+                        <th>{{ table_headers[2] if table_headers else 'Flag' }}</th>
+                        <th>{{ table_headers[3] if table_headers else 'Src Bytes' }}</th>
+                        <th>Prediction</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in snapshot_data %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td class="searchable">{{ row.col1 if row.col1 is defined else row.protocol_type }}</td>
+                        <td class="searchable">{{ row.col2 if row.col2 is defined else row.service }}</td>
+                        <td class="searchable">{{ row.col3 if row.col3 is defined else row.flag }}</td>
+                        <td>{{ row.col4 if row.col4 is defined else row.src_bytes }}</td>
+                        <td class="filterable">
+                            {% if row.Prediction_Label == 'Attack' %}
+                            <span class="badge-attack">ATTACK</span>
+                            {% else %}
+                            <span class="badge-normal">NORMAL</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ row["Confidence_%"] }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <div class="buttons gsap-element">
+            <a href="/" class="btn btn-gray">New Analysis</a>
+            <a href="/download/{{ report_csv }}" class="btn">📥 Download Predictions (CSV)</a>
+            <a href="/download/{{ report_pdf }}" class="btn btn-red">📄 Download Report (PDF)</a>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // GSAP Sequence Timeline
+            const tl = gsap.timeline();
+            tl.to(".gsap-element", {
+                y: 0,
+                opacity: 1,
+                duration: 0.6,
+                stagger: 0.15,
+                ease: "power3.out",
+                startAt: { y: 30, opacity: 0 }
+            });
+
+            // Animated Counters
+            const counters = document.querySelectorAll('.counter');
+            counters.forEach(counter => {
+                const target = parseFloat(counter.dataset.target);
+                const suffix = counter.dataset.suffix || "";
+                tl.to(counter, {
+                    innerText: target,
+                    duration: 1,
+                    snap: { innerText: 0.01 }, // snaps to 2 decimal places if needed
+                    onUpdate: function () {
+                        // format appropriately (integer vs float)
+                        let val = parseFloat(this.targets()[0].innerText);
+                        if (suffix === "%") val = val.toFixed(2);
+                        else val = Math.floor(val);
+                        counter.innerText = val + suffix;
+                    }
+                }, "-=0.5");
+            });
+
+            // Colors matching SOC Theme
+            const colorNormal = "#3B82F6"; // Primary Blue
+            const colorAttack = "#EF4444"; // Danger Red
+
+            Chart.defaults.color = "#94A3B8";
+            Chart.defaults.borderColor = "#334155";
+            Chart.defaults.font.family = "'Inter', sans-serif";
+
+            // 1. Doughnut Chart
+            const pieCtx = document.getElementById("doughnutChart");
+            const normalCount = parseInt(pieCtx.dataset.normal, 10) || 0;
+            const attackCount = parseInt(pieCtx.dataset.attack, 10) || 0;
+
+            new Chart(pieCtx, {
+                type: "doughnut",
+                data: {
+                    labels: ["Normal", "Attack"],
+                    datasets: [{
+                        data: [normalCount, attackCount],
+                        backgroundColor: [colorNormal, colorAttack],
+                        borderColor: ["#1E293B", "#1E293B"],
+                        borderWidth: 2,
+                        cutout: "75%"
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: "bottom" } } }
+            });
+
+            // 2. Bar Chart (Protocols)
+            const barCtx = document.getElementById("protocolChart");
+            const protocols = JSON.parse(barCtx.dataset.protocols);
+            const pAttack = JSON.parse(barCtx.dataset.pattack);
+            const pNormal = JSON.parse(barCtx.dataset.pnormal);
+
+            new Chart(barCtx, {
+                type: "bar",
+                data: {
+                    labels: protocols,
+                    datasets: [
+                        { label: "Attack", data: pAttack, backgroundColor: colorAttack },
+                        { label: "Normal", data: pNormal, backgroundColor: colorNormal }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: true, scales: { x: { stacked: true }, y: { stacked: true } }, plugins: { legend: { position: "bottom" } } }
+            });
+
+            // 3. Bar Chart (Services)
+            const srvCtx = document.getElementById("serviceChart");
+            const services = JSON.parse(srvCtx.dataset.services);
+            const sAttack = JSON.parse(srvCtx.dataset.sattack);
+            const sNormal = JSON.parse(srvCtx.dataset.snormal);
+
+            new Chart(srvCtx, {
+                type: "bar",
+                data: {
+                    labels: services,
+                    datasets: [
+                        { label: "Attack", data: sAttack, backgroundColor: colorAttack },
+                        { label: "Normal", data: sNormal, backgroundColor: colorNormal }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: true, scales: { x: { stacked: true }, y: { stacked: true } }, plugins: { legend: { position: "bottom" } } }
+            });
+
+            // Table Search & Filter Logic
+            const searchInput = document.getElementById("searchInput");
+            const filterSelect = document.getElementById("filterSelect");
+            const tableRows = document.querySelectorAll("#predictionTable tbody tr");
+
+            function filterTable() {
+                const query = searchInput.value.toLowerCase();
+                const filter = filterSelect.value.toUpperCase();
+
+                tableRows.forEach(row => {
+                    const textContent = Array.from(row.querySelectorAll('.searchable')).map(td => td.innerText.toLowerCase()).join(" ");
+                    const predictionText = row.querySelector('.filterable').innerText.toUpperCase();
+
+                    const matchesSearch = textContent.includes(query);
+                    const matchesFilter = (filter === "ALL") || (predictionText.includes(filter));
+
+                    row.style.display = (matchesSearch && matchesFilter) ? "" : "none";
+                });
+            }
+
+            searchInput.addEventListener("keyup", filterTable);
+            filterSelect.addEventListener("change", filterTable);
+
+            // Apply dynamic threat colors
+            document.querySelectorAll('.threat-card').forEach(card => {
+                const color = card.dataset.threatColor;
+                if (color) {
+                    card.style.borderColor = color;
+                    const badge = card.querySelector('.threat-badge');
+                    if (badge) {
+                        badge.style.color = color;
+                        badge.style.borderColor = color;
+                        badge.style.boxShadow = `0 0 10px ${color}40`;
+                    }
+                    const counter = card.querySelector('.threat-counter');
+                    if (counter) {
+                        counter.style.color = color;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

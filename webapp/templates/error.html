@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invalid Dataset</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1 class="title">❌ Invalid Dataset</h1>
+        </header>
+
+        <section class="upload-form">
+            <h2>Upload Failed</h2>
+            <p class="error-message">{{ message }}</p>
+            <div class="buttons">
+                <a href="/" class="btn">Try Another Dataset</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

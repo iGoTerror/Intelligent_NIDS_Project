@@ -1,0 +1,14 @@
+{
+    "model_name": "Ultra-Optimized Support Vector Machine (RBF Kernel)",
+    "num_features_used": 40,
+    "threshold": 0.09,
+    "accuracy": 88.64,
+    "precision": 91.97,
+    "recall": 87.7,
+    "f1_score": 89.79,
+    "fpr": 10.12,
+    "tn": 8728,
+    "fp": 983,
+    "fn": 1578,
+    "tp": 11255
+}

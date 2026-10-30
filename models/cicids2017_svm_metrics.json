@@ -1,0 +1,16 @@
+{
+    "dataset_name": "CICIDS2017 (Modern Real-World Benchmark)",
+    "model_name": "Ultra-Optimized Support Vector Machine (RBF Kernel)",
+    "num_features_used": 30,
+    "threshold": 0.45,
+    "accuracy": 96.62,
+    "precision": 86.5,
+    "recall": 94.82,
+    "f1_score": 90.47,
+    "fpr": 3.01,
+    "tn": 6449,
+    "fp": 200,
+    "fn": 70,
+    "tp": 1281,
+    "fit_time_sec": 47.46
+}
